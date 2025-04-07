@@ -1,5 +1,4 @@
 import { HashLink } from "react-router-hash-link";
-import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 interface CustomHashLinkProps {
@@ -13,20 +12,38 @@ const CustomHashLink: React.FC<CustomHashLinkProps> = ({
   children,
   className = "",
 }) => {
-  const location = useLocation();
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    const currentHash = location.hash || "#promo"; // по умолчанию "Главная"
+    const sectionId = to.replace("#", "");
+    const section = document.getElementById(sectionId);
 
-    setActive(currentHash === to);
-  }, [location, to]);
+    if (!section) return;
 
-  const handleScroll = (el: HTMLElement) => {
+    const handleScroll = () => {
+      const headerHeight = document.querySelector(".header")?.clientHeight || 0;
+      const sectionTop = section.offsetTop - headerHeight;
+      const sectionBottom = sectionTop + section.offsetHeight;
+
+      const scrollY = window.scrollY;
+
+      // Условие: если секция видна во viewport
+      setActive(scrollY >= sectionTop && scrollY < sectionBottom);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // проверить при первом рендере
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [to]);
+
+  const handleScrollTo = (el: HTMLElement) => {
     const headerHeight = document.querySelector(".header")?.clientHeight || 0;
     const elementPosition = el.getBoundingClientRect().top + window.scrollY;
     window.scrollTo({
-      top: elementPosition - headerHeight, // Добавляем небольшой отступ
+      top: elementPosition - headerHeight,
       behavior: "smooth",
     });
   };
@@ -34,7 +51,7 @@ const CustomHashLink: React.FC<CustomHashLinkProps> = ({
   return (
     <HashLink
       to={to}
-      scroll={handleScroll}
+      scroll={handleScrollTo}
       className={`${className} ${active ? "active" : ""}`.trim()}
     >
       {children}
